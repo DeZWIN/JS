@@ -21,6 +21,8 @@ function parseFile(filePath, targetArray) {
       .pipe(csv({ headers: true })) // Указываем, что первая строка содержит заголовки столбцов
       .on('data', (data) => {
         // Обрабатываем данные
+        const prefix = data['ABC/DEF']; 
+        const operator = data['Оператор'];
         const score = parseFloat(data.score); 
         const value = JSON.stringify(data);
         client.zadd(targetKey, score, value);
