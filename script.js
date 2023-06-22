@@ -14,19 +14,40 @@ const redisConfig = {
 const redisClient = redis.createClient(redisConfig.port, redisConfig.host);
 
 rl.on('line', (input) => {
-    const phoneNumberPrefix = extractPhoneNumberPrefix(input);
-    if (phoneNumberPrefix) {
-        redisClient.sismember('ABC/DEF', phoneNumberPrefix, (err, reply) => {
-            if (err) {
-                process.stdout.write('Error searching for phone number prefix\n');
-            } else if (reply === 1) {
-                process.stdout.write(`Phone number prefix exists: ${phoneNumberPrefix}\n`);
-            } else {
-                process.stdout.write(`Phone number prefix does not exist: ${phoneNumberPrefix}\n`);
-            }
-        });
+    const commandPrefix = 'GETROUTE:';
+    if (input.startsWith(commandPrefix)) {
+        const commandArgs = input.substring(commandPrefix.length).split(',');
+        const messageId = commandArgs[0];
+        const sessionId = commandArgs[1];
+        const phoneNumber = commandArgs[2];
+        const option = commandArgs[3];
+
+        const calledId = extractPhoneNumberPrefix(phoneNumber);
+
+        if (calledId) {
+            console.log('Received GETROUTE command:');
+            console.log('Message ID:', messageId);
+            console.log('Session ID:', sessionId);
+            console.log('Called ID (Prefix):', calledId);
+            console.log('Option:', option);
+
+            // Ищем оператора связи по префиксу в Redis
+            redisClient.hget('результаты_файла_1', calledId, (err, reply) => {
+                if (err) {
+                    console.log('Error searching for phone number operator');
+                } else if (reply) {
+                    console.log('Phone number operator:', reply);
+                } else {
+                    console.log('No operator found for the phone number prefix:', calledId);
+                }
+            });
+
+        } else {
+            process.stdout.write(`Invalid phone number: ${phoneNumber}\n`);
+        }
+
     } else {
-        process.stdout.write(`Invalid phone number: ${input}\n`);
+        process.stdout.write('Invalid command\n');
     }
 }).on('close', () => {
     redisClient.quit();
