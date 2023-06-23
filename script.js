@@ -37,8 +37,40 @@ rl.on('line', (input) => {
                     console.log('Error searching for phone number operator');
                 } else if (reply) {
                     console.log('Phone number operator:', reply);
+
+                    // Сопоставляем оператора с префиксом
+                    const operator = reply;
+
+                    // Ищем подходящий префикс для оператора
+                    redisClient.hkeys('operator_prefix_mapping', (err, prefixKeys) => {
+                        if (err) {
+                            console.log('Error searching for prefix keys');
+                        } else if (prefixKeys) {
+                            const matchingPrefix = prefixKeys.find((prefix) => prefix.startsWith(operator));
+                            if (matchingPrefix) {
+                                console.log('Matching prefix for operator:', matchingPrefix);
+
+                                // Формируем команду REROUTE с новым Called ID
+                                const rerouteCommand = `REROUTE:${sessionId},${matchingPrefix},${option}`;
+                                process.stdout.write(rerouteCommand + '\n');
+                            } else {
+                                console.log('No matching prefix found for operator:', operator);
+
+                                // Формируем команду NOROUTE с Session ID
+                                const norouteCommand = `NOROUTE:${sessionId}`;
+                                process.stdout.write(norouteCommand + '\n');
+                            }
+                        } else {
+                            console.log('No prefix keys found');
+                        }
+                    });
+
                 } else {
                     console.log('No operator found for the phone number prefix:', calledId);
+
+                    // Формируем команду NOROUTE с Session ID
+                    const norouteCommand = `NOROUTE:${sessionId}`;
+                    process.stdout.write(norouteCommand + '\n');
                 }
             });
 
