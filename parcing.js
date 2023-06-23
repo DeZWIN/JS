@@ -15,7 +15,7 @@ const redisConfig = {
 const client = redis.createClient(redisConfig);
 
 // Функция для чтения и парсинга файла
-function parseFile(filePath, targetArray) {
+function parseFile(filePath, targetKey) {
   return new Promise((resolve, reject) => {
     fs.createReadStream(filePath)
       .pipe(csv({ headers: true })) // Указываем, что первая строка содержит заголовки столбцов
@@ -26,6 +26,13 @@ function parseFile(filePath, targetArray) {
         const score = parseFloat(data.score); 
         const value = JSON.stringify(data);
         client.zadd(targetKey, score, value);
+        const prefixedData = {};
+        for (const [key, value] of Object.entries(data)) {
+          if (key !== 'Оператор' && key !== 'ABC/DEF') {
+            prefixedData[`${operator}_${key}_${prefix}`] = value;
+          }
+        }
+        client.hmset(targetKey, prefixedData);
       })
       .on('end', () => {
         console.log(`Парсинг файла ${filePath} завершен.`);
